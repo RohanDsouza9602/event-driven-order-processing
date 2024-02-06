@@ -45,17 +45,6 @@ public class OrderService {
 
         order.setOrderLineItemsList(orderLineItems);
 
-        BigDecimal value = BigDecimal.ZERO;
-
-//        List<BigDecimal> prices = order.getOrderLineItemsList().stream().map(OrderLineItems::getPrice).toList();
-
-        for(OrderLineItems orderLineItem : orderLineItems){
-            BigDecimal priceOf = orderLineItem.getPrice();
-            value = value.add(priceOf);
-        }
-
-
-
         if(order.getOrderLineItemsList() != null){
             List<String> skuCodes = order.getOrderLineItemsList().stream().map(OrderLineItems::getSkuCode).toList();
 
@@ -65,18 +54,25 @@ public class OrderService {
                     .bodyToMono(InventoryResponse[].class)
                     .block();
 
+            BigDecimal totalOrderValue = Arrays.stream(result)
+                    .filter(InventoryResponse::isInStock)
+                    .flatMap(inventoryResponse -> order.getOrderLineItemsList().stream()
+                            .filter(orderLineItem -> orderLineItem.getSkuCode().equals(inventoryResponse.getSkuCode())))
+                    .map(orderLineItem -> orderLineItem.getPrice().multiply(BigDecimal.valueOf(orderLineItem.getQuantity())))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
             Boolean allProductsInStock = Arrays.stream(result).allMatch(InventoryResponse::isInStock);
 
-            if(allProductsInStock){
+            if(allProductsInStock && totalOrderValue.compareTo(BigDecimal.ZERO) > 0){
                 orderRepository.save(order);
-                OrderEvent orderEvent = new OrderEvent(order.getOrderNumber(),order.getOrderEmail(),"CONFIRMED");
+                OrderEvent orderEvent = new OrderEvent(order.getOrderNumber(),order.getOrderEmail(),"CONFIRMED", totalOrderValue);
                 orderProducer.sendMessage(orderEvent);
                 flinkProducer.sendMessage(order.getOrderNumber());
 
                 return "Order placed successfully";
             }
             else{
-                OrderEvent orderEvent = new OrderEvent(order.getOrderNumber(),order.getOrderEmail(),"FAILED");
+                OrderEvent orderEvent = new OrderEvent(order.getOrderNumber(),order.getOrderEmail(),"FAILED", BigDecimal.ZERO);
                 orderProducer.sendMessage(orderEvent);
                 System.out.println("Product(s) not in stock");
                 throw new IllegalArgumentException("Product is not in stock.");

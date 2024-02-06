@@ -15,7 +15,7 @@ public class NotificationServiceApplication {
 		topics = "${spring.kafka.template.default-topic}",
 		groupId = "${spring.kafka.consumer.group-id}")
 	public void handleNotification(OrderEvent orderEvent){
-		System.out.println("Received Notification for Order - "+orderEvent.getOrderNumber());
+		System.out.println("Received Notification for Order - "+orderEvent);
 	}
 
 }
