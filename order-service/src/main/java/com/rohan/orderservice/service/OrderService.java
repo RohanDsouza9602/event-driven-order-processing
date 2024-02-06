@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -43,31 +45,46 @@ public class OrderService {
 
         order.setOrderLineItemsList(orderLineItems);
 
-        List<String> skuCodes = order.getOrderLineItemsList().stream().map(OrderLineItems::getSkuCode).toList();
+        BigDecimal value = BigDecimal.ZERO;
 
-        InventoryResponse[] result = webClient.get()
-                .uri("http://localhost:8082/api/inventory", uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
-                .retrieve()
-                .bodyToMono(InventoryResponse[].class)
-                .block();
+//        List<BigDecimal> prices = order.getOrderLineItemsList().stream().map(OrderLineItems::getPrice).toList();
 
-
-        Boolean allProductsInStock = Arrays.stream(result).allMatch(InventoryResponse::isInStock);
-
-        if(allProductsInStock){
-            orderRepository.save(order);
-            OrderEvent orderEvent = new OrderEvent(order.getOrderNumber(),order.getOrderEmail(),"CONFIRMED");
-            orderProducer.sendMessage(orderEvent);
-            flinkProducer.sendMessage(order.getOrderNumber());
-
-            return "Order placed successfully";
+        for(OrderLineItems orderLineItem : orderLineItems){
+            BigDecimal priceOf = orderLineItem.getPrice();
+            value = value.add(priceOf);
         }
-        else{
-            OrderEvent orderEvent = new OrderEvent(order.getOrderNumber(),order.getOrderEmail(),"FAILED");
-            orderProducer.sendMessage(orderEvent);
-            System.out.println("Product(s) not in stock");
-            throw new IllegalArgumentException("Product is not in stock.");
+
+
+
+        if(order.getOrderLineItemsList() != null){
+            List<String> skuCodes = order.getOrderLineItemsList().stream().map(OrderLineItems::getSkuCode).toList();
+
+            InventoryResponse[] result = webClient.get()
+                    .uri("http://localhost:8082/api/inventory", uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
+                    .retrieve()
+                    .bodyToMono(InventoryResponse[].class)
+                    .block();
+
+            Boolean allProductsInStock = Arrays.stream(result).allMatch(InventoryResponse::isInStock);
+
+            if(allProductsInStock){
+                orderRepository.save(order);
+                OrderEvent orderEvent = new OrderEvent(order.getOrderNumber(),order.getOrderEmail(),"CONFIRMED");
+                orderProducer.sendMessage(orderEvent);
+                flinkProducer.sendMessage(order.getOrderNumber());
+
+                return "Order placed successfully";
+            }
+            else{
+                OrderEvent orderEvent = new OrderEvent(order.getOrderNumber(),order.getOrderEmail(),"FAILED");
+                orderProducer.sendMessage(orderEvent);
+                System.out.println("Product(s) not in stock");
+                throw new IllegalArgumentException("Product is not in stock.");
+            }
         }
+
+        return "Please add products.";
+
     }
 
     private OrderLineItems mapToDto(OrderLineItemsDto orderLineItemsDto) {

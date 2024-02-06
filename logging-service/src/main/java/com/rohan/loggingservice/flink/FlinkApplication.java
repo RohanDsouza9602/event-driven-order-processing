@@ -42,7 +42,7 @@ public class FlinkApplication {
                 .build();
 
         DataStream<String> stream = env.fromSource(kafkaSource, WatermarkStrategy.noWatermarks(), "Kafka Source")
-                .map(orderNumber -> orderNumber + " PROCESSING") // Append " PROCESSING" to each orderNumber
+                .map(orderNumber -> orderNumber + " PROCESSING")
                 .setParallelism(1);
 
         stream.sinkTo(kafkaSink);
