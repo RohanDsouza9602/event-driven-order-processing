@@ -73,6 +73,7 @@ public class OrderService {
             else{
                 OrderEvent orderEvent = new OrderEvent(order.getOrderNumber(),order.getOrderEmail(),"FAILED", BigDecimal.ZERO);
                 orderProducer.sendMessage(orderEvent);
+                flinkProducer.sendMessage(orderEvent);
                 System.out.println("Product(s) not in stock");
                 throw new IllegalArgumentException("Product is not in stock.");
             }
