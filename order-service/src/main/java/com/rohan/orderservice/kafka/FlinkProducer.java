@@ -18,18 +18,18 @@ public class FlinkProducer {
 
     private final NewTopic topic1;
 
-    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaTemplate<String, OrderEvent> kafkaTemplate;
 
-    private FlinkProducer(NewTopic topic1, KafkaTemplate<String, String> kafkaTemplate) {
+    private FlinkProducer(NewTopic topic1, KafkaTemplate<String, OrderEvent> kafkaTemplate) {
         this.topic1 = topic1;
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    public void sendMessage(String orderNumber) {
-        log.info(String.format("Order number => {}", orderNumber));
+    public void sendMessage(OrderEvent orderEvent) {
+        log.info(String.format("Order event => {}", orderEvent.toString()));
 
-        Message<String> message = MessageBuilder
-                .withPayload(orderNumber)
+        Message<OrderEvent> message = MessageBuilder
+                .withPayload(orderEvent)
                 .setHeader(KafkaHeaders.TOPIC, topic1.name())
                 .build();
 

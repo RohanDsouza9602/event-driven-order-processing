@@ -13,9 +13,12 @@ public class LoggingServiceApplication {
 
 	}
 
-	@KafkaListener(topics = "${flink.topic}", groupId = "${spring.kafka.consumer.group-id}")
-	public void handleLog(String orderNumber){
-		System.out.println(orderNumber);
+	@KafkaListener(
+			topics = "${flink.topic}",
+			groupId = "${spring.kafka.consumer.group-id}"
+	)
+	public void handleLog(OrderEvent orderEvent){
+		System.out.println(orderEvent);
 	}
 
 }

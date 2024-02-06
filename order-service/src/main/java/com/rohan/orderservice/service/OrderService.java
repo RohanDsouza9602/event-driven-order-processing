@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -61,13 +60,13 @@ public class OrderService {
                     .map(orderLineItem -> orderLineItem.getPrice().multiply(BigDecimal.valueOf(orderLineItem.getQuantity())))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            Boolean allProductsInStock = Arrays.stream(result).allMatch(InventoryResponse::isInStock);
+            boolean allProductsInStock = Arrays.stream(result).allMatch(InventoryResponse::isInStock);
 
             if(allProductsInStock && totalOrderValue.compareTo(BigDecimal.ZERO) > 0){
                 orderRepository.save(order);
                 OrderEvent orderEvent = new OrderEvent(order.getOrderNumber(),order.getOrderEmail(),"CONFIRMED", totalOrderValue);
                 orderProducer.sendMessage(orderEvent);
-                flinkProducer.sendMessage(order.getOrderNumber());
+                flinkProducer.sendMessage(orderEvent);
 
                 return "Order placed successfully";
             }

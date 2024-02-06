@@ -1,5 +1,10 @@
 package com.rohan.loggingservice.flink;
 
+import com.rohan.loggingservice.OrderEvent;
+import com.rohan.loggingservice.flink.serialization.OrderEventDeserializer;
+import com.rohan.loggingservice.flink.serialization.OrderEventSerializer;
+import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.streaming.connectors.kafka.KafkaDeserializationSchema;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.connector.kafka.source.KafkaSource;
@@ -23,12 +28,12 @@ public class FlinkApplication {
 
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(configuration);
 
-        KafkaSource<String> kafkaSource = KafkaSource.<String>builder()
+        KafkaSource<OrderEvent> kafkaSource = KafkaSource.<OrderEvent>builder()
                 .setBootstrapServers(bootstrapServer)
                 .setTopics(inputTopic)
                 .setGroupId("flinkService")
-                .setStartingOffsets(OffsetsInitializer.earliest())
-                .setValueOnlyDeserializer(new SimpleStringSchema())
+                .setStartingOffsets(OffsetsInitializer.latest())
+                .setValueOnlyDeserializer(new OrderEventDeserializer())
                 .build();
 
         KafkaRecordSerializationSchema<String> serializer = KafkaRecordSerializationSchema.builder()
@@ -36,14 +41,18 @@ public class FlinkApplication {
                 .setTopic(outputTopic)
                 .build();
 
-        KafkaSink<String> kafkaSink = KafkaSink.<String>builder()
+        KafkaSink<OrderEvent> kafkaSink = KafkaSink.<OrderEvent>builder()
                 .setBootstrapServers(bootstrapServer)
-                .setRecordSerializer(serializer)
+                .setRecordSerializer(new OrderEventSerializer("flinkOutput"))
                 .build();
 
-        DataStream<String> stream = env.fromSource(kafkaSource, WatermarkStrategy.noWatermarks(), "Kafka Source")
+        DataStream<OrderEvent> stream = env.fromSource(kafkaSource, WatermarkStrategy.noWatermarks(), "Kafka Source");
+
+        DataStream<String> streamProcessingFunction = stream
                 .map(orderNumber -> orderNumber + " PROCESSING")
                 .setParallelism(1);
+
+        streamProcessingFunction.print();
 
         stream.sinkTo(kafkaSink);
 
