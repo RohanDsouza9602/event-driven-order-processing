@@ -4,6 +4,7 @@ import com.rohan.loggingservice.OrderEvent;
 import com.rohan.loggingservice.flink.serialization.OrderEventDeserializer;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
@@ -22,6 +23,9 @@ import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.util.Collector;
+import org.apache.logging.log4j.Level;
+
 
 import java.math.BigDecimal;
 
@@ -74,58 +78,56 @@ public class FlinkApplication {
         streamProcessingFunction.print("\n").setParallelism(1);
 
         // KeySelector for keying according to orderStatus
-        KeySelector<OrderEvent, String> keySelector = new KeySelector<OrderEvent, String>() {
+        KeySelector<OrderEvent, String> numberKeySelector = new KeySelector<OrderEvent, String>() {
             @Override
             public String getKey(OrderEvent orderEvent) throws Exception {
-                return orderEvent.getOrderStatus();
+                return orderEvent.getOrderNumber();
             }
         };
 
-        KeyedStream<OrderEvent, String> keyedStream = stream.keyBy(keySelector);
+        KeyedStream<OrderEvent, String> keyedStream = stream.keyBy(numberKeySelector);
 
-        DataStream<Tuple2<String, Long>> resultConfirmed = keyedStream
-                .filter(new FilterFunction<OrderEvent>() {
-                    @Override
-                    public boolean filter(OrderEvent orderEvent) throws Exception {
-                        return "CONFIRMED".equals(orderEvent.getOrderStatus());
-                    }
-                })
+        DataStream<Tuple2<String, Long>> resultStatus = keyedStream
                 .map(new MapFunction<OrderEvent, Tuple2<String, Long>>() {
                     @Override
                     public Tuple2<String, Long> map(OrderEvent orderEvent) throws Exception {
-                        return new Tuple2<>("CONFIRMED", 1L);
+                        return new Tuple2<>(orderEvent.getOrderStatus(), 1L);
                     }
                 })
                 .keyBy(tuple -> tuple.f0)
                 .sum(1);
 
-        DataStream<Tuple2<String, Long>> resultFailed = keyedStream
-                .filter(new FilterFunction<OrderEvent>() {
-                    @Override
-                    public boolean filter(OrderEvent orderEvent) throws Exception {
-                        return "FAILED".equals(orderEvent.getOrderStatus());
-                    }
-                })
-                .map(new MapFunction<OrderEvent, Tuple2<String, Long>>() {
-                    @Override
-                    public Tuple2<String, Long> map(OrderEvent orderEvent) throws Exception {
-                        return new Tuple2<>("FAILED", 1L);
-                    }
-                })
-                .keyBy(tuple -> tuple.f0)
-                .sum(1);
+//        DataStream<Tuple2<String, Long>> resultTotalRevenue = keyedStream
+//                .map(new MapFunction<OrderEvent, Tuple2<String, Long>>() {
+//                    @Override
+//                    public Tuple2<String, Long> map(OrderEvent orderEvent) throws Exception {
+//                        return new Tuple2<>("Total Revenue",orderEvent.getTotalOrderValue());
+//                    }
+//                })
+//                .keyBy(tuple -> tuple.f0)
+//                .sum(1);
 
-        DataStream<BigDecimal> resultTotalRevenue = keyedStream
+//        DataStream<Tuple2<String, Long>> resultFailed = keyedStream
 //                .filter(new FilterFunction<OrderEvent>() {
 //                    @Override
 //                    public boolean filter(OrderEvent orderEvent) throws Exception {
-//                        return "CONFIRMED".equals(orderEvent.getOrderStatus());
+//                        return "FAILED".equals(orderEvent.getOrderStatus());
 //                    }
 //                })
+//                .map(new MapFunction<OrderEvent, Tuple2<String, Long>>() {
+//                    @Override
+//                    public Tuple2<String, Long> map(OrderEvent orderEvent) throws Exception {
+//                        return new Tuple2<>("FAILED", 1L);
+//                    }
+//                })
+//                .keyBy(tuple -> tuple.f0)
+//                .sum(1);
+
+        DataStream<BigDecimal> resultTotalRevenue = keyedStream
                 .map(new MapFunction<OrderEvent, BigDecimal>() {
                     @Override
                     public BigDecimal map(OrderEvent orderEvent) throws Exception {
-                        return orderEvent.getTotalOrderValue(); // No need to convert to BigDecimal
+                        return orderEvent.getTotalOrderValue();
                     }
                 })
                 .keyBy(new KeySelector<BigDecimal, String>() {
@@ -157,9 +159,10 @@ public class FlinkApplication {
                     }
                 });
 
+
 //      Print the aggregated results
-        resultConfirmed.print().setParallelism(1);
-        resultFailed.print().setParallelism(1);
+        resultStatus.print().setParallelism(1);
+//        resultFailed.print().setParallelism(1);
         resultTotalRevenue.print("Total Revenue =").setParallelism(1);
 
 //        DataStream<Tuple2<String, Long>> combinedResult = resultConfirmed.union(resultFailed);
