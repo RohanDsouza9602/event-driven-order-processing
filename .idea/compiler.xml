@@ -9,16 +9,16 @@
         <outputRelativeToContentRoot value="true" />
         <module name="order-service" />
         <module name="inventory-service" />
+        <module name="flink-service" />
         <module name="logging-service" />
-        <module name="notification-service" />
       </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="flink-service" options="-parameters" />
       <module name="inventory-service" options="-parameters" />
       <module name="logging-service" options="-parameters" />
-      <module name="notification-service" options="-parameters" />
       <module name="order-service" options="-parameters" />
     </option>
   </component>

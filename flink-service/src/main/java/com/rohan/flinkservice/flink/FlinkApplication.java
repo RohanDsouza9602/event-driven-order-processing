@@ -1,18 +1,13 @@
-package com.rohan.loggingservice.flink;
+package com.rohan.flinkservice.flink;
 
-import com.rohan.loggingservice.OrderEvent;
-import com.rohan.loggingservice.flink.serialization.OrderEventDeserializer;
-import org.apache.flink.api.common.functions.FilterFunction;
+import com.rohan.flinkservice.OrderEvent;
+import com.rohan.flinkservice.flink.serialization.OrderEventDeserializer;
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.connector.base.DeliveryGuarantee;
-import org.apache.flink.contrib.streaming.state.EmbeddedRocksDBStateBackend;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -23,8 +18,6 @@ import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.util.Collector;
-import org.apache.logging.log4j.Level;
 
 
 import java.math.BigDecimal;
@@ -54,6 +47,14 @@ public class FlinkApplication {
                 .setValueOnlyDeserializer(new OrderEventDeserializer())
 //                .setProperty("isolation.level", "read_committed")
                 .build();
+
+//        KafkaSource<OrderEvent> notificationIdSource = KafkaSource.<OrderEvent>builder()
+//                .setBootstrapServers(bootstrapServer)
+//                .setTopics(inputTopic,"notificationId")
+//                .setGroupId("fromNotif")
+//                .setStartingOffsets(OffsetsInitializer.earliest())
+//                .setValueOnlyDeserializer(new OrderEventDeserializer())
+//                .build();
 
         KafkaRecordSerializationSchema<String> serializer = KafkaRecordSerializationSchema.builder()
                 .setValueSerializationSchema(new SimpleStringSchema())

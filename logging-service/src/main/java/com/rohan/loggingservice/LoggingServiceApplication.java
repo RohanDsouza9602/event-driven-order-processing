@@ -7,18 +7,15 @@ import org.springframework.kafka.annotation.KafkaListener;
 @SpringBootApplication
 public class LoggingServiceApplication {
 
-	public static void main(String[] args) throws Exception {
-
+	public static void main(String[] args) {
 		SpringApplication.run(LoggingServiceApplication.class, args);
-
 	}
 
 	@KafkaListener(
-			topics = "${flink.topic}",
-			groupId = "${spring.kafka.consumer.group-id}"
-	)
-	public void handleLog(OrderEvent orderEvent){
-		System.out.println(orderEvent);
+		topics = "${spring.kafka.template.default-topic}",
+		groupId = "${spring.kafka.consumer.group-id}")
+	public void handleNotification(OrderEvent orderEvent){
+		System.out.println("Received Notification for Order - "+orderEvent);
 	}
 
 }

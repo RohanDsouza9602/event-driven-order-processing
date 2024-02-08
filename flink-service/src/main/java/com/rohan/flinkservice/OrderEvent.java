@@ -1,4 +1,4 @@
-package com.rohan.notificationservice;
+package com.rohan.flinkservice;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

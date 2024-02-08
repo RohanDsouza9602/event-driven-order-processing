@@ -1,6 +1,6 @@
-package com.rohan.loggingservice.flink.serialization;
+package com.rohan.flinkservice.flink.serialization;
 
-import com.rohan.loggingservice.OrderEvent;
+import com.rohan.flinkservice.OrderEvent;
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.producer.ProducerRecord;
