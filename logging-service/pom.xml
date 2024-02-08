@@ -25,11 +25,7 @@
 			<groupId>org.springframework.kafka</groupId>
 			<artifactId>spring-kafka</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-statebackend-rocksdb</artifactId>
-			<version>1.18.1</version>
-		</dependency>
+
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -45,79 +41,6 @@
 			<artifactId>spring-kafka-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-
-
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-clients</artifactId>
-			<version>1.18.1</version>
-			<scope>compile</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-core</artifactId>
-			<version>1.18.1</version>
-			<scope>compile</scope>
-		</dependency>
-
-		<!--		<dependency>-->
-		<!--			<groupId>org.apache.flink</groupId>-->
-		<!--			<artifactId>flink-streaming-java</artifactId>-->
-		<!--			<version>1.18.1</version>-->
-		<!--			<scope>compile</scope>-->
-		<!--		</dependency>-->
-
-		<!-- Flink Kafka Connector -->
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-connector-kafka</artifactId>
-			<version>3.0.2-1.18</version>
-			<scope>compile</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-runtime-web</artifactId>
-			<version>1.18.1</version>
-			<scope>compile</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-connector-base</artifactId>
-			<version>1.18.1</version>
-			<scope>compile</scope>
-		</dependency>
-
-		<!-- Flink Kafka Connector Shaded -->
-		<!--		<dependency>-->
-		<!--			<groupId>org.apache.flink</groupId>-->
-		<!--			<artifactId>flink-connector-kafka-shaded_2.12</artifactId>-->
-		<!--			<version>1.18.1</version>-->
-		<!--		</dependency>-->
-
-		<!--		&lt;!&ndash; Flink Kafka Connector Shaded ZooKeeper &ndash;&gt;-->
-		<!--		<dependency>-->
-		<!--			<groupId>org.apache.flink</groupId>-->
-		<!--			<artifactId>flink-connector-kafka-shaded-zookeeper_2.12</artifactId>-->
-		<!--			<version>1.18.1</version>-->
-		<!--		</dependency>-->
-
-		<!-- Flink Metrics Core -->
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-metrics-core</artifactId>
-			<version>1.18.1</version>
-		</dependency>
-
-		<!-- Flink Metrics Observation -->
-		<dependency>
-			<groupId>io.micrometer</groupId>
-			<artifactId>micrometer-observation</artifactId>
-			<version>1.12.2</version>
-		</dependency>
-
 	</dependencies>
 
 	<build>
