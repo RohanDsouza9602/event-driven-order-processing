@@ -17,8 +17,8 @@ public class FlinkServiceApplication {
 			topics = "${flink.topic}",
 			groupId = "${spring.kafka.consumer.group-id}"
 	)
-	public void handleLog(OrderEvent orderEvent){
-		System.out.println(orderEvent);
+	public void handleLog(String orderNumberProcessed){
+		System.out.println(orderNumberProcessed);
 	}
 
 }
