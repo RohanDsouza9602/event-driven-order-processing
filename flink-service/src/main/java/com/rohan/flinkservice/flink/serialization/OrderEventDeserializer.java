@@ -1,6 +1,6 @@
 package com.rohan.flinkservice.flink.serialization;
 
-import com.rohan.flinkservice.OrderEvent;
+import com.rohan.flinkservice.flink.event.OrderEvent;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;

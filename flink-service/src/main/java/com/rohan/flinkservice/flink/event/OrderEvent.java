@@ -1,4 +1,4 @@
-package com.rohan.flinkservice;
+package com.rohan.flinkservice.flink.event;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

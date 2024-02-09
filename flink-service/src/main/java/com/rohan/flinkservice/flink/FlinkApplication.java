@@ -1,8 +1,9 @@
 package com.rohan.flinkservice.flink;
 
-import com.rohan.flinkservice.OrderEvent;
+import com.rohan.flinkservice.flink.event.OrderEvent;
 import com.rohan.flinkservice.flink.serialization.OrderEventDeserializer;
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
@@ -18,13 +19,16 @@ import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
+import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 
 
 import java.math.BigDecimal;
 
 public class FlinkApplication {
 
-    final static String inputTopic = "flinkTopic";
+    final static String inputTopic = "notificationId";
     final static String outputTopic = "flinkOutput";
     final static String jobTitle = "id-processing";
 
@@ -43,18 +47,12 @@ public class FlinkApplication {
                 .setBootstrapServers(bootstrapServer)
                 .setTopics(inputTopic)
                 .setGroupId("flinkService")
-                .setStartingOffsets(OffsetsInitializer.latest())
+                .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.LATEST))
                 .setValueOnlyDeserializer(new OrderEventDeserializer())
+                .setProperty("enable.auto.commit", "true")  // Enable automatic offset committing
+                .setProperty("auto.commit.interval.ms", "1000")  // Set the interval for automatic offset committing (in milliseconds)
 //                .setProperty("isolation.level", "read_committed")
                 .build();
-
-//        KafkaSource<OrderEvent> notificationIdSource = KafkaSource.<OrderEvent>builder()
-//                .setBootstrapServers(bootstrapServer)
-//                .setTopics(inputTopic,"notificationId")
-//                .setGroupId("fromNotif")
-//                .setStartingOffsets(OffsetsInitializer.earliest())
-//                .setValueOnlyDeserializer(new OrderEventDeserializer())
-//                .build();
 
         KafkaRecordSerializationSchema<String> serializer = KafkaRecordSerializationSchema.builder()
                 .setValueSerializationSchema(new SimpleStringSchema())
@@ -160,11 +158,33 @@ public class FlinkApplication {
                     }
                 });
 
+        DataStream<BigDecimal> windowRevenue = keyedStream
+                .map(new MapFunction<OrderEvent, BigDecimal>() {
+                    @Override
+                    public BigDecimal map(OrderEvent orderEvent) throws Exception {
+                        return orderEvent.getTotalOrderValue();
+                    }
+                })
+                .keyBy(new KeySelector<BigDecimal, String>() {
+                    @Override
+                    public String getKey(BigDecimal orderValue) throws Exception {
+                        return "totalRevenue"; // Fixed key for total revenue
+                    }
+                })
+                .window(TumblingProcessingTimeWindows.of(Time.seconds(30))) // Define tumbling processing time windows of 30 seconds
+                .reduce(new ReduceFunction<BigDecimal>() {
+                    @Override
+                    public BigDecimal reduce(BigDecimal value1, BigDecimal value2) throws Exception {
+                        return value1.add(value2); // Sum the values within each window
+                    }
+                });
+
 
 //      Print the aggregated results
         resultStatus.print().setParallelism(1);
 //        resultFailed.print().setParallelism(1);
         resultTotalRevenue.print("Total Revenue =").setParallelism(1);
+        windowRevenue.print("Total Revenue in the last 30 seconds =").setParallelism(1);
 
 //        DataStream<Tuple2<String, Long>> combinedResult = resultConfirmed.union(resultFailed);
 //        combinedResult.print();
