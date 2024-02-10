@@ -9,6 +9,8 @@ import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -31,12 +33,18 @@ public class FlinkApplication {
     final static String inputTopic = "notificationId";
     final static String outputTopic = "flinkOutput";
     final static String jobTitle = "id-processing";
+    final static ObjectMapper objectMapper = new ObjectMapper();
+
 
     public static void main(String[] args) throws Exception{
+
 
         final String bootstrapServer = "localhost:9092";
 
         Configuration configuration = new Configuration();
+
+        int defaultLocalParallelism = Runtime.getRuntime().availableProcessors();
+        configuration.setString("taskmanager.memory.network.max", "1gb");
 
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(configuration);
 
@@ -192,6 +200,7 @@ public class FlinkApplication {
         // orderEvents that have been processed
         DataStream<String> streamProcessedFunction = stream
                 .map(orderEvent -> "OrderEvent(" + orderEvent.getOrderNumber() + ") PROCESSED")
+                .map(orderEvent -> toJSONString(orderEvent))
                 .setParallelism(1);
 
         // publish processed events to sink flinkOutput
@@ -199,5 +208,11 @@ public class FlinkApplication {
 
         env.execute(jobTitle);
     }
+
+    private static String toJSONString(String data) throws JsonProcessingException {
+            return objectMapper.writeValueAsString(data);
+    }
+
+
 
 }

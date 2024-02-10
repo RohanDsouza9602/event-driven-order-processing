@@ -26,10 +26,15 @@ import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
-public class FlinkTimestampApplication {
 
-    final static String inputTopic = "flinkTopic";
+public class   FlinkTimestampApplication {
+
+    final static String inputTopic = "notificationId";
     final static String outputTopic = "flinkTimeOutput";
     final static String jobTitle = "timestamp-processing";
 
@@ -55,17 +60,17 @@ public class FlinkTimestampApplication {
 //                .setProperty("isolation.level", "read_committed")
                 .build();
 
-        KafkaRecordSerializationSchema<String> serializer = KafkaRecordSerializationSchema.builder()
-                .setValueSerializationSchema(new SimpleStringSchema())
-                .setTopic(outputTopic)
-                .build();
+//        KafkaRecordSerializationSchema<String> serializer = KafkaRecordSerializationSchema.builder()
+//                .setValueSerializationSchema(new SimpleStringSchema())
+//                .setTopic(outputTopic)
+//                .build();
 
-        KafkaSink<String> kafkaSink = KafkaSink.<String>builder()
-                .setBootstrapServers(bootstrapServer)
-//                .setRecordSerializer(new OrderEventSerializer("flinkOutput"))
-                .setRecordSerializer(serializer)
-//                .setDeliveryGuarantee(DeliveryGuarantee.EXACTLY_ONCE)
-                .build();
+//        KafkaSink<String> kafkaSink = KafkaSink.<String>builder()
+//                .setBootstrapServers(bootstrapServer)
+////                .setRecordSerializer(new OrderEventSerializer("flinkOutput"))
+//                .setRecordSerializer(serializer)
+////                .setDeliveryGuarantee(DeliveryGuarantee.EXACTLY_ONCE)
+//                .build();
 
         DataStream<OrderEvent> stream = env.fromSource(kafkaSource, WatermarkStrategy.noWatermarks(), "Kafka Source");
 
@@ -74,7 +79,10 @@ public class FlinkTimestampApplication {
                     @Override
                     public TimedOrderEvent map(OrderEvent orderEvent) throws Exception {
                         Long currentTimestamp = System.currentTimeMillis();
-                        return new TimedOrderEvent(orderEvent, currentTimestamp);
+                        LocalDateTime localDateTime;
+                        Instant instant = Instant.ofEpochMilli(currentTimestamp);
+                        Duration duration = Duration.ofHours(5).plusMinutes(30);
+                        return new TimedOrderEvent(orderEvent, currentTimestamp, instant.plus(duration));
                     }
                 });
 
@@ -82,6 +90,7 @@ public class FlinkTimestampApplication {
 
 
         env.execute(jobTitle);
+
     }
 
 }
