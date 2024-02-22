@@ -44,12 +44,15 @@ public class OrderGenerator {
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(props)) {
-            for (int i = 0; i < 200000000; i++) {
+            int a = 0;
+            for (int i = 0; i < 1000000; i++) {
                 OrderEvent orderEvent = generateOrderEvent();
                 String orderEventJson = convertOrderEventToJson(orderEvent);
                 producer.send(new ProducerRecord<>(TOPIC_NAME, orderEventJson));
                 System.out.println("Sent order event to Kafka: " + orderEventJson);
+                a = i+1;
             }
+            System.out.println("Total orders processed: "+a);
         }
     }
 

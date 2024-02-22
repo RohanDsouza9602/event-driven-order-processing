@@ -21,8 +21,10 @@ import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 
 
@@ -166,6 +168,7 @@ public class FlinkApplication {
                     }
                 });
 
+
         DataStream<BigDecimal> windowRevenue = keyedStream
                 .map(new MapFunction<OrderEvent, BigDecimal>() {
                     @Override
@@ -186,7 +189,6 @@ public class FlinkApplication {
                         return value1.add(value2); // Sum the values within each window
                     }
                 });
-
 
 //      Print the aggregated results
         resultStatus.print().setParallelism(1);
