@@ -29,16 +29,15 @@ import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 
 
 import java.math.BigDecimal;
-
-public class FlinkApplication {
+public class FlinkOnlyRevenue {
 
     final static String inputTopic = "notificationId";
     final static String outputTopic = "flinkOutput";
-    final static String jobTitle = "id-processing";
+    final static String jobTitle = "revenue-processing";
     final static ObjectMapper objectMapper = new ObjectMapper();
 
 
-    public static void main(String[] args) throws Exception{
+    public static void main(String[] args) throws Exception {
 
 
         final String bootstrapServer = "localhost:9092";
@@ -48,7 +47,6 @@ public class FlinkApplication {
         int defaultLocalParallelism = Runtime.getRuntime().availableProcessors();
         configuration.setString("taskmanager.memory.network.max", "2gb");
 
-
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(configuration);
 
 //        env.enableCheckpointing(5000);
@@ -57,7 +55,7 @@ public class FlinkApplication {
         KafkaSource<OrderEvent> kafkaSource = KafkaSource.<OrderEvent>builder()
                 .setBootstrapServers(bootstrapServer)
                 .setTopics(inputTopic)
-                .setGroupId("flinkService")
+                .setGroupId("flinkStatus")
                 .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.LATEST))
                 .setValueOnlyDeserializer(new OrderEventDeserializer())
                 .setProperty("enable.auto.commit", "true")  // Enable automatic offset committing
@@ -65,27 +63,7 @@ public class FlinkApplication {
 //                .setProperty("isolation.level", "read_committed")
                 .build();
 
-        KafkaRecordSerializationSchema<String> serializer = KafkaRecordSerializationSchema.builder()
-                .setValueSerializationSchema(new SimpleStringSchema())
-                .setTopic(outputTopic)
-                .build();
-
-        KafkaSink<String> kafkaSink = KafkaSink.<String>builder()
-                .setBootstrapServers(bootstrapServer)
-//                .setRecordSerializer(new OrderEventSerializer("flinkOutput"))
-                .setRecordSerializer(serializer)
-//                .setDeliveryGuarantee(DeliveryGuarantee.EXACTLY_ONCE)
-                .build();
-
-
         DataStream<OrderEvent> stream = env.fromSource(kafkaSource, WatermarkStrategy.noWatermarks(), "Kafka Source");
-
-        // Showing orderEvents that are processing
-        DataStream<String> streamProcessingFunction = stream
-                .map(orderEvent -> orderEvent + " PROCESSING")
-                .setParallelism(400);
-
-        streamProcessingFunction.print("\n").setParallelism(400);
 
         // KeySelector for keying according to orderStatus
         KeySelector<OrderEvent, String> numberKeySelector = new KeySelector<OrderEvent, String>() {
@@ -96,18 +74,6 @@ public class FlinkApplication {
         };
 
         KeyedStream<OrderEvent, String> keyedStream = stream.keyBy(numberKeySelector);
-
-        DataStream<Tuple2<String, Long>> resultStatus = keyedStream
-                .map(new MapFunction<OrderEvent, Tuple2<String, Long>>() {
-                    @Override
-                    public Tuple2<String, Long> map(OrderEvent orderEvent) throws Exception {
-                        return new Tuple2<>(orderEvent.getOrderStatus(), 1L);
-                    }
-                })
-                .keyBy(tuple -> tuple.f0)
-                .sum(1)
-                .setParallelism(400);
-
 
         DataStream<BigDecimal> resultTotalRevenue = keyedStream
                 .map(new MapFunction<OrderEvent, BigDecimal>() {
@@ -167,33 +133,11 @@ public class FlinkApplication {
                         return value1.add(value2); // Sum the values within each window
                     }
                 })
-                .setParallelism(400);;
+                .setParallelism(400);
 
-//      Print the aggregated results
-        resultStatus.print().setParallelism(400);
-//        resultFailed.print().setParallelism(1);
         resultTotalRevenue.print("Total Revenue =").setParallelism(400);
         windowRevenue.print("Total Revenue in the last 30 seconds =").setParallelism(400);
 
-//        DataStream<Tuple2<String, Long>> combinedResult = resultConfirmed.union(resultFailed);
-//        combinedResult.print();
-
-
-        DataStream<String> streamProcessedFunction = stream
-                .map(orderEvent -> "OrderEvent(" + orderEvent.getOrderNumber() + ") PROCESSED")
-                .map(orderEvent -> toJSONString(orderEvent))
-                .setParallelism(400);
-
-        // publish processed events to sink flinkOutput
-        streamProcessedFunction.sinkTo(kafkaSink);
-
         env.execute(jobTitle);
     }
-
-    private static String toJSONString(String data) throws JsonProcessingException {
-            return objectMapper.writeValueAsString(data);
-    }
-
-
-
 }

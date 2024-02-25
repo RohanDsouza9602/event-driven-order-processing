@@ -45,7 +45,7 @@ public class OrderGenerator {
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(props)) {
             int a = 0;
-            for (int i = 0; i < 1000000; i++) {
+            for (int i = 0; i < 100000000; i++) {
                 OrderEvent orderEvent = generateOrderEvent();
                 String orderEventJson = convertOrderEventToJson(orderEvent);
                 producer.send(new ProducerRecord<>(TOPIC_NAME, orderEventJson));
